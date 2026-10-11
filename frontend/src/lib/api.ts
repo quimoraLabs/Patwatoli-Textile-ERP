@@ -66,7 +66,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  const data = await res.json();
+  const text = await res.text();
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(res.ok ? text : `Server error (${res.status}): ${text.trim() || res.statusText}`);
+  }
+
   if (!res.ok || !data.success) {
     const errorMsg = data?.error?.message || 'An error occurred';
     throw new Error(errorMsg);
