@@ -31,6 +31,8 @@
 - [x] Migration 000007: Default settings seed (company name, GST rates, invoice prefix) & RBAC seed
 - [x] Migration 000008: Invoice cancellation schema & ledger constraint update
 - [x] Super Admin Seeding (`owner@patwatoli.example` / `S3cure#Pass`)
+- [x] Demo Textile Finished Goods & Merchants Seeding (`scripts/seed_demo.go` -> 5 items, 14 variants, 4 merchants with opening balances)
+- [x] Git repository initialization and clean initial commit
 
 ---
 
