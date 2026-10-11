@@ -1,14 +1,14 @@
+//go:build ignore
+
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -50,10 +50,6 @@ type Ledger struct {
 }
 
 func main() {
-	adminOnly := flag.Bool("admin", false, "Seed only the super admin user")
-	demoOnly := flag.Bool("demo", false, "Seed only the demo textile items & merchants")
-	flag.Parse()
-
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "postgres://erp_user:erp_password@localhost:5432/textile_erp?sslmode=disable"
@@ -64,53 +60,6 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	runAll := !*adminOnly && !*demoOnly
-
-	if runAll || *adminOnly {
-		seedAdmin(db)
-	}
-
-	if runAll || *demoOnly {
-		seedDemoData(db)
-	}
-
-	fmt.Println("Database seeding completed successfully!")
-}
-
-func seedAdmin(db *gorm.DB) {
-	email := "owner@patwatoli.example"
-	password := "S3cure#Pass"
-
-	var count int64
-	db.Table("users").Where("lower(email) = ?", email).Count(&count)
-	if count > 0 {
-		fmt.Printf("Admin user '%s' already exists. Skipping.\n", email)
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatalf("Failed to hash password: %v", err)
-	}
-
-	user := map[string]interface{}{
-		"id":            uuid.New(),
-		"name":          "Patwatoli Super Admin",
-		"email":         email,
-		"phone":         "9876543210",
-		"password_hash": string(hash),
-		"role":          "super_admin",
-		"is_active":     true,
-	}
-
-	if err := db.Table("users").Create(&user).Error; err != nil {
-		log.Fatalf("Failed to create user: %v", err)
-	}
-
-	fmt.Printf("Successfully created super_admin user: %s\n", email)
-}
-
-func seedDemoData(db *gorm.DB) {
 	fmt.Println("Seeding demo textile items and merchants...")
 
 	// 1. Items & Variants
@@ -302,4 +251,6 @@ func seedDemoData(db *gorm.DB) {
 
 		fmt.Printf("Created merchant '%s' (Opening Balance: ₹%.2f)\n", m.Name, m.OpeningBalance)
 	}
+
+	fmt.Println("Demo seed finished successfully!")
 }

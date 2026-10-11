@@ -19,7 +19,7 @@ backend-test:
 	cd backend && go test -v ./...
 
 backend-seed:
-	cd backend && go run ./scripts/seed.go
+	cd backend && go run ./scripts/seed_admin.go && go run ./scripts/seed_demo.go
 
 frontend-dev:
 	cd frontend && npm.cmd run dev
