@@ -1,0 +1,25 @@
+# Go binaries & build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bin/
+dist/
+api.exe
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Local database backups
+backups/
+*.sql.bak
+*.sql.gz
+
+# Coverage & profiling
+coverage.txt
+*.pprof

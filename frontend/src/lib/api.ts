@@ -1,0 +1,222 @@
+import {
+  AuthResponse,
+  DashboardMetrics,
+  Invoice,
+  Item,
+  Merchant,
+  MerchantLedger,
+  Payment,
+  Setting,
+  AuditLog,
+  Backup,
+  User,
+} from '@/types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1';
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+export const authStorage = {
+  getToken: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('ptx_access_token');
+  },
+  setToken: (token: string) => {
+    if (typeof window !== 'undefined') localStorage.setItem('ptx_access_token', token);
+  },
+  getUser: (): User | null => {
+    if (typeof window === 'undefined') return null;
+    const str = localStorage.getItem('ptx_user');
+    return str ? JSON.parse(str) : null;
+  },
+  setUser: (u: User) => {
+    if (typeof window !== 'undefined') localStorage.setItem('ptx_user', JSON.stringify(u));
+  },
+  clear: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ptx_access_token');
+      localStorage.removeItem('ptx_refresh_token');
+      localStorage.removeItem('ptx_user');
+    }
+  },
+};
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  const token = authStorage.getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${endpoint}`;
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    const errorMsg = data?.error?.message || 'An error occurred';
+    throw new Error(errorMsg);
+  }
+
+  return data;
+}
+
+export const api = {
+  // Auth
+  login: async (body: { email: string; password: string }) => {
+    const res = await request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    authStorage.setToken(res.data.access_token);
+    authStorage.setUser(res.data.user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ptx_refresh_token', res.data.refresh_token);
+    }
+    return res.data;
+  },
+  logout: async () => {
+    try {
+      await request('/auth/logout', { method: 'POST' });
+    } finally {
+      authStorage.clear();
+    }
+  },
+  me: () => request<User>('/auth/me').then((r) => r.data),
+
+  // Dashboard
+  getDashboardMetrics: () => request<DashboardMetrics>('/dashboard').then((r) => r.data),
+
+  // Merchants
+  getMerchants: (params?: { page?: number; limit?: number; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.search) query.set('search', params.search);
+    return request<Merchant[]>(`/merchants?${query.toString()}`);
+  },
+  getMerchant: (id: string) => request<Merchant>(`/merchants/${id}`).then((r) => r.data),
+  createMerchant: (body: { name: string; phone?: string; address?: string; gstin?: string; opening_balance?: number }) =>
+    request<Merchant>('/merchants', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  updateMerchant: (id: string, body: { name?: string; phone?: string; address?: string; gstin?: string }) =>
+    request<Merchant>(`/merchants/${id}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
+  deleteMerchant: (id: string) =>
+    request(`/merchants/${id}`, { method: 'DELETE' }).then((r) => r.data),
+
+  // Items & Variants
+  getItems: (params?: { page?: number; limit?: number; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.search) query.set('search', params.search);
+    return request<Item[]>(`/items?${query.toString()}`);
+  },
+  createItem: (body: { name: string; unit: string; variants?: { size: string; rate: number }[] }) =>
+    request<Item>('/items', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  deleteItem: (id: string) => request(`/items/${id}`, { method: 'DELETE' }),
+  addVariant: (itemId: string, body: { size: string; rate: number }) =>
+    request(`/items/${itemId}/variants`, { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  updateVariant: (variantId: string, body: { rate: number }) =>
+    request(`/variants/${variantId}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
+
+  // Invoices
+  getInvoices: (params?: { page?: number; limit?: number; merchant_id?: string; status?: string; from_date?: string; to_date?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.merchant_id) query.set('merchant_id', params.merchant_id);
+    if (params?.status) query.set('status', params.status);
+    if (params?.from_date) query.set('from_date', params.from_date);
+    if (params?.to_date) query.set('to_date', params.to_date);
+    return request<Invoice[]>(`/invoices?${query.toString()}`);
+  },
+  getInvoice: (id: string) => request<Invoice>(`/invoices/${id}`).then((r) => r.data),
+  createInvoice: (body: { merchant_id: string; invoice_date: string; items: { item_id: string; variant_id: string; qty: number; rate?: number }[] }) =>
+    request<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  cancelInvoice: (id: string, reason: string) =>
+    request<Invoice>(`/invoices/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }).then((r) => r.data),
+  getInvoicePdfUrl: (id: string) => `${API_BASE_URL}/invoices/${id}/pdf`,
+
+  // Payments
+  getPayments: (params?: { page?: number; limit?: number; merchant_id?: string; from_date?: string; to_date?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.merchant_id) query.set('merchant_id', params.merchant_id);
+    if (params?.from_date) query.set('from_date', params.from_date);
+    if (params?.to_date) query.set('to_date', params.to_date);
+    return request<Payment[]>(`/payments?${query.toString()}`);
+  },
+  createPayment: (body: { merchant_id: string; amount: number; payment_mode: string; payment_date: string }) =>
+    request<Payment>('/payments', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+
+  // Ledger (Khaata)
+  getMerchantLedger: (merchantId: string, params?: { page?: number; limit?: number; from_date?: string; to_date?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.from_date) query.set('from_date', params.from_date);
+    if (params?.to_date) query.set('to_date', params.to_date);
+    return request<MerchantLedger>(`/merchants/${merchantId}/ledger?${query.toString()}`);
+  },
+
+  // Reports
+  getSalesReport: (from_date?: string, to_date?: string) => {
+    const query = new URLSearchParams();
+    if (from_date) query.set('from_date', from_date);
+    if (to_date) query.set('to_date', to_date);
+    return request<any[]>(`/reports/sales?${query.toString()}`).then((r) => r.data);
+  },
+  getMerchantWiseReport: (from_date?: string, to_date?: string) => {
+    const query = new URLSearchParams();
+    if (from_date) query.set('from_date', from_date);
+    if (to_date) query.set('to_date', to_date);
+    return request<any[]>(`/reports/merchant-wise?${query.toString()}`).then((r) => r.data);
+  },
+  getItemWiseReport: (from_date?: string, to_date?: string) => {
+    const query = new URLSearchParams();
+    if (from_date) query.set('from_date', from_date);
+    if (to_date) query.set('to_date', to_date);
+    return request<any[]>(`/reports/item-wise?${query.toString()}`).then((r) => r.data);
+  },
+  getGSTReport: (from_date?: string, to_date?: string) => {
+    const query = new URLSearchParams();
+    if (from_date) query.set('from_date', from_date);
+    if (to_date) query.set('to_date', to_date);
+    return request<any>(`/reports/gst?${query.toString()}`).then((r) => r.data);
+  },
+
+  // Settings
+  getSettings: () => request<Setting[]>('/settings').then((r) => r.data),
+  updateSettings: (settings: Record<string, string>) =>
+    request('/settings', { method: 'PUT', body: JSON.stringify({ settings }) }),
+
+  // Audit Logs
+  getAuditLogs: (params?: { page?: number; limit?: number; module?: string; action?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.module) query.set('module', params.module);
+    if (params?.action) query.set('action', params.action);
+    return request<AuditLog[]>(`/audit-logs?${query.toString()}`);
+  },
+
+  // Backups
+  getBackups: () => request<Backup[]>('/backups').then((r) => r.data),
+  triggerBackup: () => request<Backup>('/backups', { method: 'POST' }).then((r) => r.data),
+  getBackupDownloadUrl: (id: string) => `${API_BASE_URL}/backups/${id}/download`,
+};
