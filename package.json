@@ -9,9 +9,9 @@
     "docker:down": "docker compose down",
     "backend:dev": "cd backend && go run ./cmd/api",
     "backend:test": "cd backend && go test -v ./...",
-    "backend:seed": "cd backend && go run ./scripts/seed_admin.go",
-    "backend:seed:demo": "cd backend && go run ./scripts/seed_demo.go",
-    "seed": "cd backend && go run ./scripts/seed_admin.go && go run ./scripts/seed_demo.go",
+    "backend:seed": "cd backend && go run ./scripts/seed.go --admin",
+    "backend:seed:demo": "cd backend && go run ./scripts/seed.go --demo",
+    "seed": "cd backend && go run ./scripts/seed.go",
     "frontend:dev": "cd frontend && npm.cmd run dev",
     "frontend:build": "cd frontend && npm.cmd run build"
   }
