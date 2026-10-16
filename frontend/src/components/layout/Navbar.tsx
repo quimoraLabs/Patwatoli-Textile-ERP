@@ -18,10 +18,15 @@ import {
   Mail,
   Phone,
   Download,
+  Menu,
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function Navbar() {
+interface NavbarProps {
+  onOpenMobileSidebar?: () => void;
+}
+
+export default function Navbar({ onOpenMobileSidebar }: NavbarProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -136,51 +141,65 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="h-16 border-b border-slate-700/50 bg-slate-900/60 backdrop-blur-md sticky top-0 z-20 px-8 flex items-center justify-between ml-64">
-        {/* Left Greeting & Time */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/40">
+      <header className="h-16 border-b border-slate-700/50 bg-slate-900/60 backdrop-blur-md sticky top-0 z-20 px-3 sm:px-6 lg:px-8 flex items-center justify-between lg:ml-64">
+        {/* Left Greeting & Mobile Toggle */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={onOpenMobileSidebar}
+            className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60 transition-colors cursor-pointer"
+            title="Open Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="lg:hidden flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
+            <span className="font-bold text-xs sm:text-sm text-white">Patwatoli ERP</span>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/40">
             <Clock className="h-3.5 w-3.5 text-indigo-400" />
             <span>{new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
           </div>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* PWA Install Button */}
           {isInstallable && !isInstalled && (
             <button
               type="button"
               onClick={promptInstall}
               title="Install Patwatoli ERP Desktop/Mobile App"
-              className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all cursor-pointer"
             >
               <Download className="h-3.5 w-3.5 text-indigo-400" />
-              <span className="hidden sm:inline">Install App</span>
+              <span className="hidden md:inline">Install App</span>
             </button>
           )}
 
           <Link
             href="/invoices/new"
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-semibold px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>New Invoice</span>
+            <span className="hidden xs:inline sm:inline">New Bill</span>
           </Link>
 
           {/* User Card */}
           {user ? (
-            <div className="flex items-center gap-3 pl-4 border-l border-slate-700/50">
+            <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 border-l border-slate-700/50">
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(true)}
-                className="text-right hover:opacity-80 transition-opacity cursor-pointer group"
+                className="text-right hover:opacity-80 transition-opacity cursor-pointer group max-w-22.5 sm:max-w-none"
                 title="View & Edit Profile"
               >
-                <div className="text-xs font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">
+                <div className="text-xs font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors truncate">
                   {user.name}
                 </div>
-                <div className="text-[11px] text-indigo-400 capitalize flex items-center justify-end gap-1 font-medium">
+                <div className="hidden sm:flex text-[11px] text-indigo-400 capitalize items-center justify-end gap-1 font-medium">
                   <Shield className="h-3 w-3" />
                   {user.role.replace('_', ' ')}
                 </div>
@@ -189,7 +208,7 @@ export default function Navbar() {
               <button
                 onClick={handleLogout}
                 title="Logout"
-                className="p-2 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-slate-700/50 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-slate-700/50 transition-colors cursor-pointer"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -197,7 +216,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg border border-indigo-500/30 hover:bg-indigo-500/10 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-2.5 sm:px-3 py-1.5 rounded-lg border border-indigo-500/30 hover:bg-indigo-500/10 transition-colors"
             >
               <UserIcon className="h-3.5 w-3.5" />
               <span>Login</span>
@@ -208,7 +227,7 @@ export default function Navbar() {
 
       {/* Standby Deletion Alert Banner */}
       {user?.deletion_alert?.is_standby && (
-        <div className="ml-64 bg-amber-500/15 border-b border-amber-500/30 px-8 py-3 flex items-center justify-between text-xs text-amber-200">
+        <div className="lg:ml-64 bg-amber-500/15 border-b border-amber-500/30 px-4 sm:px-8 py-3 flex flex-col sm:flex-row gap-2 sm:items-center justify-between text-xs text-amber-200">
           <div className="flex items-center gap-2.5">
             <span className="text-base">⚠️</span>
             <span>

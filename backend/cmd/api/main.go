@@ -9,6 +9,7 @@ import (
 	"patwatoli-erp/internal/platform/database"
 	"patwatoli-erp/internal/platform/logger"
 	"patwatoli-erp/internal/router"
+	"patwatoli-erp/migrations"
 )
 
 func main() {
@@ -20,6 +21,12 @@ func main() {
 	db, err := database.NewPostgres(cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("database connection failed", "error", err)
+		os.Exit(1)
+	}
+
+	// Automatically run database migrations & seed defaults on startup (guarantees Render zero-failure)
+	if err := migrations.RunAutoMigrate(db); err != nil {
+		slog.Error("database migration failed", "error", err)
 		os.Exit(1)
 	}
 

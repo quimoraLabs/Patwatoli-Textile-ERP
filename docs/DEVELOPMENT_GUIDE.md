@@ -28,18 +28,27 @@ This guide details the end-to-end deployment strategy for **Patwatoli Textile ER
 
 ## 2. Environment Setup & Configuration
 
-Configuration is managed strictly through environment variables across environments.
+Configuration is managed strictly through separated environment files to ensure local test data never corrupts live production databases on Render and Vercel.
+
+- **Backend (Render / Local):**
+  - Local Dev: `backend/.env.local` (Local Docker DB, `sslmode=disable`, ignored by git)
+  - Production Template: `backend/.env.example` (Set in Render Dashboard, `sslmode=require`)
+- **Frontend (Vercel / Local):**
+  - Local Dev: `frontend/.env.local` (Connects to `http://localhost:8080/api/v1`, ignored by git)
+  - Production Template: `frontend/.env.example` (Set in Vercel Dashboard -> Environment Variables)
 
 ### Component Configuration Table
 
 | Environment Variable | Description | Deployment Target | Secret / Public |
 | --- | --- | --- | --- |
-| `PORT` | Go Application HTTP Listening Port | Render Web Service | Secret |
-| `DATABASE_URL` | PostgreSQL Connection String | Render Web Service | Secret |
-| `REDIS_URL` | Redis 7 Connection String | Render Web Service | Secret |
-| `JWT_SECRET` | Secret key for signing Access Tokens | Render Web Service | Secret |
-| `CORS_ORIGINS` | Allowed Frontend Domain(s) | Render Web Service | Secret |
-| `NEXT_PUBLIC_API_BASE_URL` | Backend API Root Path | Vercel Frontend | Public |
+| `APP_ENV` | Application environment (`development` / `production`) | Render Web Service | Secret |
+| `PORT` | Go Application HTTP Listening Port (Default: `8080`) | Render Web Service | Secret |
+| `DATABASE_URL` | PostgreSQL Connection String (`sslmode=require` on Render) | Render Web Service | Secret |
+| `REDIS_URL` | Redis Connection String (Optional, runs safely without it) | Render Web Service | Secret |
+| `JWT_SECRET` | Secret key for signing Access Tokens (min 32 chars) | Render Web Service | Secret |
+| `ALLOWED_ORIGIN` | Allowed Frontend Domain(s) (e.g. `https://your-app.vercel.app`) | Render Web Service | Secret |
+| `NEXT_PUBLIC_API_BASE_URL` | Live Backend API Root Path (`https://...onrender.com/api/v1`) | Vercel Frontend | Public |
+| `NEXT_PUBLIC_APP_NAME` | Display application title | Vercel Frontend | Public |
 
 ---
 

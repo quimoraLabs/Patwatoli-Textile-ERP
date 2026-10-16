@@ -121,7 +121,7 @@ export default function InvoicesPage() {
       {/* Table */}
       <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-175">
             <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700/50">
               <tr>
                 <th className="py-3 px-4 font-semibold">Invoice #</th>

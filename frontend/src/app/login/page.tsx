@@ -52,7 +52,7 @@ function LoginForm() {
         <div className="glass-panel rounded-2xl p-8 border border-slate-700/60 shadow-2xl">
           {/* Logo & Header */}
           <div className="text-center mb-8">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/30 mb-4">
+            <div className="h-14 w-14 rounded-2xl bg-linear-to-tr from-indigo-600 via-indigo-500 to-cyan-400 mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/30 mb-4">
               <Layers className="h-7 w-7 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-white tracking-tight">Patwatoli Textile ERP</h2>
@@ -115,7 +115,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:opacity-95 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 bg-linear-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:opacity-95 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

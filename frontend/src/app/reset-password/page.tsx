@@ -70,7 +70,7 @@ function ResetPasswordForm() {
         <div className="glass-panel rounded-2xl p-8 border border-slate-700/60 shadow-2xl">
           {/* Logo & Header */}
           <div className="text-center mb-6">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/30 mb-3">
+            <div className="h-12 w-12 rounded-2xl bg-linear-to-tr from-indigo-600 via-indigo-500 to-cyan-400 mx-auto flex items-center justify-center shadow-xl shadow-indigo-600/30 mb-3">
               <KeyRound className="h-6 w-6 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">Set New Password</h2>
@@ -138,7 +138,7 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading || success}
-              className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:opacity-95 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full mt-2 py-2.5 px-4 bg-linear-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:opacity-95 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

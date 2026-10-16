@@ -123,7 +123,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="glass-panel rounded-2xl p-6 border border-slate-700/50">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-700/50">
         {loading ? (
           <div className="py-16 text-center text-slate-500 text-xs">
             <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -131,7 +131,7 @@ export default function ReportsPage() {
           </div>
         ) : tab === 'sales' ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-137.5">
               <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700">
                 <tr>
                   <th className="py-3 px-4 font-semibold">Date</th>
@@ -166,7 +166,7 @@ export default function ReportsPage() {
           </div>
         ) : tab === 'merchant' ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-162.5">
               <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700">
                 <tr>
                   <th className="py-3 px-4 font-semibold">Merchant (व्यापारी)</th>
@@ -203,7 +203,7 @@ export default function ReportsPage() {
           </div>
         ) : tab === 'item' ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-137.5">
               <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700">
                 <tr>
                   <th className="py-3 px-4 font-semibold">Item Name (कपड़ा)</th>

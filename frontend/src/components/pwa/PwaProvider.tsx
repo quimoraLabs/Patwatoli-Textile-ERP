@@ -137,7 +137,7 @@ export default function PwaProvider({ children }: { children: React.ReactNode })
       {/* Floating Modern PWA Install Banner */}
       {showInstallBanner && !isInstalled && (
         <div className="fixed bottom-5 right-5 z-50 max-w-sm w-full p-4 glass-panel rounded-2xl border border-indigo-500/40 shadow-2xl shadow-indigo-950/60 flex items-center gap-4 bg-slate-900/95 backdrop-blur-xl animate-fade-in">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
+          <div className="h-12 w-12 rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">

@@ -244,7 +244,7 @@ export default function NewInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                <label className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
                   <span>Billing Date & Time (दिनांक व समय) <span className="text-indigo-400">*</span></span>
                   <span className="text-[10px] text-slate-400 font-normal">Click box to open</span>
                 </label>
@@ -283,7 +283,7 @@ export default function NewInvoicePage() {
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/30">
-              <table className="w-full text-left text-xs min-w-[620px]">
+              <table className="w-full text-left text-xs min-w-155">
                 <thead className="bg-slate-800/80 text-slate-300 border-b border-slate-700/60">
                   <tr>
                     <th className="py-3 px-3.5 font-semibold text-slate-300 w-[30%]">Cloth / Item</th>
@@ -417,7 +417,7 @@ export default function NewInvoicePage() {
             <button
               type="submit"
               disabled={submitting || taxableTotal <= 0}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 px-4 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               {submitting ? (
                 <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

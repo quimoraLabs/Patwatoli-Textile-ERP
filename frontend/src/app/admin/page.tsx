@@ -323,12 +323,12 @@ export default function AdminPage() {
       </div>
 
       {/* Tab Panes */}
-      <div className="glass-panel rounded-2xl p-6 border border-slate-700/50">
+      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-700/50">
         {loading ? (
           <div className="py-16 text-center text-slate-500 text-xs">Loading panel data...</div>
         ) : tab === 'users' ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-white">System Users & Role-Based Permissions</h2>
                 <p className="text-xs text-slate-400">
@@ -345,7 +345,7 @@ export default function AdminPage() {
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40">
-              <table className="w-full text-left text-xs min-w-[700px]">
+              <table className="w-full text-left text-xs min-w-175">
                 <thead className="bg-slate-800/80 text-slate-300 border-b border-slate-700">
                   <tr>
                     <th className="py-3 px-4 font-semibold">User / Name</th>
@@ -543,7 +543,7 @@ export default function AdminPage() {
           </div>
         ) : tab === 'items' ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-white">Finished Goods & Size-Wise Variant Rates</h2>
                 <p className="text-xs text-slate-400">Pre-configured pricing snapshot used when creating invoices</p>
@@ -851,7 +851,7 @@ export default function AdminPage() {
           </form>
         ) : tab === 'backups' ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-white">PostgreSQL Database Snapshots</h2>
                 <p className="text-xs text-slate-400">Export complete transactional state for local safekeeping</p>
@@ -867,7 +867,7 @@ export default function AdminPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-137.5">
                 <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Snapshot File</th>
