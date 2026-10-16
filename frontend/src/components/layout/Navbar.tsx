@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authStorage, api } from '@/lib/api';
 import { User } from '@/types';
+import { usePwa } from '@/components/pwa/PwaProvider';
 import {
   LogOut,
   User as UserIcon,
@@ -16,6 +17,7 @@ import {
   Lock,
   Mail,
   Phone,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -39,6 +41,8 @@ export default function Navbar() {
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const { isInstallable, isInstalled, promptInstall } = usePwa();
 
   const [revokingDeletion, setRevokingDeletion] = useState(false);
   const [revokeSuccess, setRevokeSuccess] = useState<string | null>(null);
@@ -142,7 +146,20 @@ export default function Navbar() {
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* PWA Install Button */}
+          {isInstallable && !isInstalled && (
+            <button
+              type="button"
+              onClick={promptInstall}
+              title="Install Patwatoli ERP Desktop/Mobile App"
+              className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5 text-indigo-400" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
+
           <Link
             href="/invoices/new"
             className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
