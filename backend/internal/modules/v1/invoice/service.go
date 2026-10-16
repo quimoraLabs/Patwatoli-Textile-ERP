@@ -31,9 +31,9 @@ func (s *Service) Create(req CreateInvoiceRequest, actorID, clientIP string) (*I
 		return nil, apperror.BadRequest("Invalid merchant ID")
 	}
 
-	invoiceDate, err := time.Parse("2006-01-02", req.InvoiceDate)
+	invoiceDate, err := parseInvoiceDate(req.InvoiceDate)
 	if err != nil {
-		return nil, apperror.BadRequest("Invalid invoice date format. Expected YYYY-MM-DD")
+		return nil, apperror.BadRequest("Invalid invoice date/time format. Expected YYYY-MM-DD or YYYY-MM-DDTHH:mm")
 	}
 
 	var m merchant.Merchant
@@ -371,3 +371,25 @@ func (s *Service) GeneratePDF(idStr string) ([]byte, string, error) {
 	filename := inv.InvoiceNo + ".pdf"
 	return pdfBytes, filename, nil
 }
+
+func parseInvoiceDate(raw string) (time.Time, error) {
+	formats := []string{
+		"2006-01-02T15:04",
+		"2006-01-02 15:04",
+		"2006-01-02T15:04:05",
+		time.RFC3339,
+		"2006-01-02",
+	}
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		loc = time.FixedZone("IST", 5*3600+30*60)
+	}
+
+	for _, layout := range formats {
+		if t, err := time.ParseInLocation(layout, raw, loc); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, errors.New("invalid invoice date format")
+}
+

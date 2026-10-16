@@ -13,10 +13,12 @@ type User struct {
 	Phone        string     `gorm:"type:varchar(15)"`
 	PasswordHash string     `gorm:"type:text;not null"`
 	Role         string     `gorm:"type:varchar(20);not null"`
-	IsActive     bool       `gorm:"not null;default:true"`
-	LastLogin    *time.Time `gorm:""`
-	CreatedAt    time.Time  `gorm:"not null;default:now()"`
-	UpdatedAt    time.Time  `gorm:"not null;default:now()"`
+	IsActive          bool       `gorm:"not null;default:true"`
+	ScheduledDeleteAt *time.Time `gorm:"type:timestamptz"`
+	DeletionStatus    string     `gorm:"type:varchar(20);not null;default:'active';index:idx_users_deletion_status"`
+	LastLogin         *time.Time `gorm:""`
+	CreatedAt         time.Time  `gorm:"not null;default:now()"`
+	UpdatedAt         time.Time  `gorm:"not null;default:now()"`
 }
 
 func (User) TableName() string {

@@ -41,6 +41,10 @@ If documents conflict, call out the conflict and prefer the user's explicit requ
 - Run the smallest relevant existing validation for each change and report commands that could not be run.
 - For financial, authorization, or cancellation changes, validate the relevant boundary cases and transaction behavior where tests exist.
 - Do not claim a feature is complete based only on documentation or a successful build.
+- **Critical Rule for UI Testing:**
+  1. **NO PHANTOM TESTING CLAIMS:** The agent is STRICTLY PROHIBITED from claiming that UI testing, login checks, or visual interactions are "completed successfully" unless a real, visible browser window (`headless: false`) successfully renders and stays active on the user's primary physical monitor.
+  2. **IMMEDIATE SHUTDOWN ON BACKGROUND EXECUTION:** If sandbox or background execution isolates the browser window and prevents it from appearing on the user's actual desktop screen, the agent MUST immediately abort the background test claim, inform the user honestly that visual rendering is blocked by the OS/IDE session, and stop pretending the UI test is done.
+  3. **ZERO TOLERANCE:** Faking browser automation results through terminal logs or hidden processes is a major protocol violation. Transparency and physical visibility to the user are mandatory.
 
 ## Documentation
 

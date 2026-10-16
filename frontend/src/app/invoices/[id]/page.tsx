@@ -28,6 +28,8 @@ export default function InvoiceDetailPage({
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   const fetchInvoice = async () => {
     setLoading(true);
     try {
@@ -43,6 +45,19 @@ export default function InvoiceDetailPage({
   useEffect(() => {
     fetchInvoice();
   }, [id]);
+
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    setDownloadingPdf(true);
+    try {
+      await api.downloadInvoicePDF(invoice.id, invoice.invoice_no);
+    } catch (err: any) {
+      // Fallback: open URL directly with query token
+      window.open(api.getInvoicePdfUrl(invoice.id), '_blank');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handleCancelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,15 +111,18 @@ export default function InvoiceDetailPage({
             <Printer className="h-3.5 w-3.5" />
             <span>Print Invoice</span>
           </button>
-          <a
-            href={api.getInvoicePdfUrl(invoice.id)}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all"
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/30 transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="h-3.5 w-3.5" />
-            <span>Download PDF</span>
-          </a>
+            {downloadingPdf ? (
+              <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            <span>{downloadingPdf ? 'Downloading...' : 'Download PDF'}</span>
+          </button>
           {invoice.status === 'active' && (
             <button
               onClick={() => setCancelModalOpen(true)}
@@ -129,7 +147,7 @@ export default function InvoiceDetailPage({
           <div className="text-right space-y-1">
             <div className="text-sm font-bold text-indigo-400 tracking-wider">TAX INVOICE</div>
             <div className="text-xs font-semibold text-white">Invoice #: {invoice.invoice_no}</div>
-            <div className="text-xs text-slate-400">Date: {invoice.invoice_date}</div>
+            <div className="text-xs text-slate-400">Date & Time: {invoice.invoice_date}</div>
             <div className="pt-1">
               {invoice.status === 'active' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
@@ -147,7 +165,7 @@ export default function InvoiceDetailPage({
         {/* Bill To Info */}
         <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-800 text-xs space-y-1">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Bill To (क्रेता / व्यापारी):
+            Bill To (क्रेता):
           </div>
           <div className="text-sm font-bold text-white">{invoice.merchant_name}</div>
           {invoice.merchant_phone && <div className="text-slate-400">Phone: {invoice.merchant_phone}</div>}

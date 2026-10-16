@@ -13,7 +13,7 @@ type Invoice struct {
 	ID            uuid.UUID         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	InvoiceNo     string            `gorm:"type:varchar(30);not null;uniqueIndex"`
 	MerchantID    uuid.UUID         `gorm:"type:uuid;not null;index:idx_invoices_merchant_date"`
-	InvoiceDate   time.Time         `gorm:"type:date;not null;index:idx_invoices_date"`
+	InvoiceDate   time.Time         `gorm:"type:timestamptz;not null;index:idx_invoices_date"`
 	TaxableAmount float64           `gorm:"type:numeric(12,2);not null"`
 	CGST          float64           `gorm:"type:numeric(12,2);not null;default:0"`
 	SGST          float64           `gorm:"type:numeric(12,2);not null;default:0"`

@@ -71,14 +71,26 @@ export default function ReportsPage() {
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="bg-transparent text-xs text-slate-200 focus:outline-none"
+            onClick={(e) => {
+              try {
+                e.currentTarget.showPicker();
+              } catch {}
+            }}
+            style={{ colorScheme: 'dark' }}
+            className="bg-transparent text-xs text-slate-200 focus:outline-none cursor-pointer"
           />
           <span className="text-slate-500 text-xs">to</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="bg-transparent text-xs text-slate-200 focus:outline-none mr-2"
+            onClick={(e) => {
+              try {
+                e.currentTarget.showPicker();
+              } catch {}
+            }}
+            style={{ colorScheme: 'dark' }}
+            className="bg-transparent text-xs text-slate-200 focus:outline-none mr-2 cursor-pointer"
           />
         </div>
       </div>

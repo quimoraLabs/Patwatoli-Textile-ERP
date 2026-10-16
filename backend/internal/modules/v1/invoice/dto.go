@@ -69,6 +69,15 @@ func ToInvoiceResponse(inv *Invoice) InvoiceResponse {
 		}
 	}
 
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		loc = time.FixedZone("IST", 5*3600+30*60)
+	}
+	dateFormatted := inv.InvoiceDate.In(loc).Format("2006-01-02 15:04")
+	if (inv.InvoiceDate.In(loc).Format("15:04") == "00:00" || inv.InvoiceDate.In(loc).Format("15:04") == "05:30") && !inv.CreatedAt.IsZero() {
+		dateFormatted = inv.InvoiceDate.In(loc).Format("2006-01-02") + " " + inv.CreatedAt.In(loc).Format("15:04")
+	}
+
 	return InvoiceResponse{
 		ID:            inv.ID.String(),
 		InvoiceNo:     inv.InvoiceNo,
@@ -76,7 +85,7 @@ func ToInvoiceResponse(inv *Invoice) InvoiceResponse {
 		MerchantName:  inv.Merchant.Name,
 		MerchantPhone: inv.Merchant.Phone,
 		MerchantGSTIN: inv.Merchant.GSTIN,
-		InvoiceDate:   inv.InvoiceDate.Format("2006-01-02"),
+		InvoiceDate:   dateFormatted,
 		TaxableAmount: inv.TaxableAmount,
 		CGST:          inv.CGST,
 		SGST:          inv.SGST,

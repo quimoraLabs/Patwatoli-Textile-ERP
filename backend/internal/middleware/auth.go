@@ -21,20 +21,26 @@ type UserClaims struct {
 func Auth(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			response.Error(c, apperror.Unauthorized("Missing authorization header"))
+		tokenString := ""
+
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				tokenString = parts[1]
+			}
+		}
+
+		// Fallback to ?token= query parameter (useful for PDF stream downloads / window.open in browser)
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
+			response.Error(c, apperror.Unauthorized("Missing authorization token"))
 			c.Abort()
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			response.Error(c, apperror.Unauthorized("Invalid authorization header format"))
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		claims := &UserClaims{}
 
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {

@@ -3,6 +3,7 @@ import {
   DashboardMetrics,
   Invoice,
   Item,
+  ItemVariant,
   Merchant,
   MerchantLedger,
   Payment,
@@ -49,6 +50,8 @@ export const authStorage = {
   },
 };
 
+let isRedirectingToLogin = false;
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = authStorage.getToken();
   const headers: Record<string, string> = {
@@ -61,10 +64,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   const url = `${API_BASE_URL}${endpoint}`;
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (netErr: any) {
+    throw new Error(netErr?.message || 'Network request failed. Is the backend server running?');
+  }
+
+  if (res.status === 401) {
+    authStorage.clear();
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login') && !isRedirectingToLogin) {
+      isRedirectingToLogin = true;
+      window.location.href = '/login?expired=1';
+    }
+    throw new Error('Session expired or unauthorized. Please log in again.');
+  }
 
   const text = await res.text();
   let data: any;
@@ -83,7 +100,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  // Auth
+  // Auth & Session
   login: async (body: { email: string; password: string }) => {
     const res = await request<AuthResponse>('/auth/login', {
       method: 'POST',
@@ -96,6 +113,28 @@ export const api = {
     }
     return res.data;
   },
+  register: async (body: { name: string; email: string; password: string; phone?: string; role?: string }) => {
+    const res = await request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    authStorage.setToken(res.data.access_token);
+    authStorage.setUser(res.data.user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ptx_refresh_token', res.data.refresh_token);
+    }
+    return res.data;
+  },
+  forgotPassword: (email: string) =>
+    request<{ message: string; reset_token: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }).then((r) => r.data),
+  resetPassword: (body: { reset_token: string; new_password: string }) =>
+    request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
   logout: async () => {
     try {
       await request('/auth/logout', { method: 'POST' });
@@ -104,6 +143,36 @@ export const api = {
     }
   },
   me: () => request<User>('/auth/me').then((r) => r.data),
+  getMe: () => request<User>('/auth/me').then((r) => r.data),
+  updateProfile: (body: { name: string; phone?: string }) =>
+    request<User>('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }).then((r) => {
+      authStorage.setUser(r.data);
+      return r.data;
+    }),
+  changePassword: (body: { old_password: string; new_password: string }) =>
+    request<{ message: string }>('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+
+  // Users (RBAC)
+  getUsers: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return request<User[]>(`/users?${query.toString()}`);
+  },
+  createUser: (body: { name: string; email: string; password: string; phone?: string; role: string }) =>
+    request<User>('/users', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  updateUser: (id: string, body: { name?: string; phone?: string; role?: string; is_active?: boolean }) =>
+    request<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
+  deleteUser: (id: string) => request(`/users/${id}`, { method: 'DELETE' }),
+  revokeUserDeletion: (id: string) =>
+    request<User>(`/users/${id}/revoke-deletion`, { method: 'POST' }).then((r) => r.data),
+  permanentDeleteUser: (id: string) =>
+    request(`/users/${id}/permanent`, { method: 'DELETE' }),
+  revokeMyDeletion: () =>
+    request<User>('/auth/revoke-deletion', { method: 'POST' }).then((r) => r.data),
 
   // Dashboard
   getDashboardMetrics: () => request<DashboardMetrics>('/dashboard').then((r) => r.data),
@@ -124,7 +193,7 @@ export const api = {
   deleteMerchant: (id: string) =>
     request(`/merchants/${id}`, { method: 'DELETE' }).then((r) => r.data),
 
-  // Items & Variants
+  // Items & Variants CRUD
   getItems: (params?: { page?: number; limit?: number; search?: string }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set('page', params.page.toString());
@@ -134,11 +203,14 @@ export const api = {
   },
   createItem: (body: { name: string; unit: string; variants?: { size: string; rate: number }[] }) =>
     request<Item>('/items', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+  updateItem: (id: string, body: { name?: string; unit?: string }) =>
+    request<Item>(`/items/${id}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
   deleteItem: (id: string) => request(`/items/${id}`, { method: 'DELETE' }),
   addVariant: (itemId: string, body: { size: string; rate: number }) =>
-    request(`/items/${itemId}/variants`, { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
+    request<ItemVariant>(`/items/${itemId}/variants`, { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
   updateVariant: (variantId: string, body: { rate: number }) =>
-    request(`/variants/${variantId}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
+    request<ItemVariant>(`/variants/${variantId}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
+  deleteVariant: (variantId: string) => request(`/variants/${variantId}`, { method: 'DELETE' }),
 
   // Invoices
   getInvoices: (params?: { page?: number; limit?: number; merchant_id?: string; status?: string; from_date?: string; to_date?: string }) => {
@@ -156,7 +228,31 @@ export const api = {
     request<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
   cancelInvoice: (id: string, reason: string) =>
     request<Invoice>(`/invoices/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }).then((r) => r.data),
-  getInvoicePdfUrl: (id: string) => `${API_BASE_URL}/invoices/${id}/pdf`,
+  
+  // PDF Download & Direct Links (Resolves 401 Unauthorized via ?token= query parameter and Blob download)
+  getInvoicePdfUrl: (id: string) => {
+    const token = authStorage.getToken();
+    return `${API_BASE_URL}/invoices/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+  downloadInvoicePDF: async (id: string, invoiceNo?: string) => {
+    const token = authStorage.getToken();
+    const url = `${API_BASE_URL}/invoices/${id}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to download invoice PDF (status: ${res.status})`);
+    }
+    const blob = await res.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `${invoiceNo || 'invoice'}_${id.slice(0, 8)}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+  },
 
   // Payments
   getPayments: (params?: { page?: number; limit?: number; merchant_id?: string; from_date?: string; to_date?: string }) => {
@@ -225,5 +321,8 @@ export const api = {
   // Backups
   getBackups: () => request<Backup[]>('/backups').then((r) => r.data),
   triggerBackup: () => request<Backup>('/backups', { method: 'POST' }).then((r) => r.data),
-  getBackupDownloadUrl: (id: string) => `${API_BASE_URL}/backups/${id}/download`,
+  getBackupDownloadUrl: (id: string) => {
+    const token = authStorage.getToken();
+    return `${API_BASE_URL}/backups/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
 };

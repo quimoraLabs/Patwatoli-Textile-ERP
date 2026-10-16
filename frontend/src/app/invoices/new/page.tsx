@@ -19,8 +19,8 @@ interface InvoiceRow {
   itemId: string;
   variantId: string;
   size: string;
-  qty: number;
-  rate: number;
+  qty: number | '';
+  rate: number | '';
   amount: number;
 }
 
@@ -29,7 +29,14 @@ export default function NewInvoicePage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [selectedMerchantId, setSelectedMerchantId] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const getInitialDateTime = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  };
+
+  const [invoiceDate, setInvoiceDate] = useState(getInitialDateTime);
   const [rows, setRows] = useState<InvoiceRow[]>([
     { itemId: '', variantId: '', size: '', qty: 1, rate: 0, amount: 0 },
   ]);
@@ -58,7 +65,8 @@ export default function NewInvoicePage() {
       newRows[rowIndex].variantId = v.id;
       newRows[rowIndex].size = v.size;
       newRows[rowIndex].rate = v.rate;
-      newRows[rowIndex].amount = Math.round(newRows[rowIndex].qty * v.rate * 100) / 100;
+      const currentQty = typeof newRows[rowIndex].qty === 'number' ? newRows[rowIndex].qty : 0;
+      newRows[rowIndex].amount = Math.round(currentQty * v.rate * 100) / 100;
     } else {
       newRows[rowIndex].variantId = '';
       newRows[rowIndex].size = '';
@@ -76,22 +84,39 @@ export default function NewInvoicePage() {
     if (variant) {
       newRows[rowIndex].size = variant.size;
       newRows[rowIndex].rate = variant.rate;
-      newRows[rowIndex].amount = Math.round(newRows[rowIndex].qty * variant.rate * 100) / 100;
+      const currentQty = typeof newRows[rowIndex].qty === 'number' ? newRows[rowIndex].qty : 0;
+      newRows[rowIndex].amount = Math.round(currentQty * variant.rate * 100) / 100;
     }
     setRows(newRows);
   };
 
-  const handleQtyChange = (rowIndex: number, qty: number) => {
+  const handleQtyChange = (rowIndex: number, val: string) => {
     const newRows = [...rows];
-    newRows[rowIndex].qty = qty;
-    newRows[rowIndex].amount = Math.round(qty * newRows[rowIndex].rate * 100) / 100;
+    if (val === '') {
+      newRows[rowIndex].qty = '';
+      newRows[rowIndex].amount = 0;
+    } else {
+      const num = parseFloat(val);
+      const safeNum = isNaN(num) ? 0 : num;
+      newRows[rowIndex].qty = safeNum;
+      const rate = typeof newRows[rowIndex].rate === 'number' ? newRows[rowIndex].rate : 0;
+      newRows[rowIndex].amount = Math.round(safeNum * rate * 100) / 100;
+    }
     setRows(newRows);
   };
 
-  const handleRateChange = (rowIndex: number, rate: number) => {
+  const handleRateChange = (rowIndex: number, val: string) => {
     const newRows = [...rows];
-    newRows[rowIndex].rate = rate;
-    newRows[rowIndex].amount = Math.round(newRows[rowIndex].qty * rate * 100) / 100;
+    if (val === '') {
+      newRows[rowIndex].rate = '';
+      newRows[rowIndex].amount = 0;
+    } else {
+      const num = parseFloat(val);
+      const safeNum = isNaN(num) ? 0 : num;
+      newRows[rowIndex].rate = safeNum;
+      const qty = typeof newRows[rowIndex].qty === 'number' ? newRows[rowIndex].qty : 0;
+      newRows[rowIndex].amount = Math.round(qty * safeNum * 100) / 100;
+    }
     setRows(newRows);
   };
 
@@ -116,9 +141,9 @@ export default function NewInvoicePage() {
       return;
     }
 
-    const validItems = rows.filter((r) => r.itemId && r.variantId && r.qty > 0);
+    const validItems = rows.filter((r) => r.itemId && r.variantId && Number(r.qty) > 0);
     if (validItems.length === 0) {
-      setError('Please select at least one item and size variant');
+      setError('Please select at least one item, size variant and quantity > 0');
       return;
     }
 
@@ -132,8 +157,8 @@ export default function NewInvoicePage() {
         items: validItems.map((r) => ({
           item_id: r.itemId,
           variant_id: r.variantId,
-          qty: r.qty,
-          rate: r.rate,
+          qty: Number(r.qty),
+          rate: Number(r.rate),
         })),
       });
 
@@ -219,15 +244,22 @@ export default function NewInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Invoice Date <span className="text-indigo-400">*</span>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Billing Date & Time (दिनांक व समय) <span className="text-indigo-400">*</span></span>
+                  <span className="text-[10px] text-slate-400 font-normal">Click box to open</span>
                 </label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   required
                   value={invoiceDate}
                   onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  onClick={(e) => {
+                    try {
+                      e.currentTarget.showPicker();
+                    } catch {}
+                  }}
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 />
               </div>
             </div>
@@ -250,19 +282,19 @@ export default function NewInvoicePage() {
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-800/60 text-slate-400 border-b border-slate-700/50">
+            <div className="overflow-x-auto rounded-xl border border-slate-700/60 bg-slate-900/30">
+              <table className="w-full text-left text-xs min-w-[620px]">
+                <thead className="bg-slate-800/80 text-slate-300 border-b border-slate-700/60">
                   <tr>
-                    <th className="py-2.5 px-3 font-semibold">Cloth / Item</th>
-                    <th className="py-2.5 px-3 font-semibold">Size Variant</th>
-                    <th className="py-2.5 px-3 font-semibold w-24">Qty</th>
-                    <th className="py-2.5 px-3 font-semibold w-28">Rate (₹)</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Amount (₹)</th>
-                    <th className="py-2.5 px-2 w-10"></th>
+                    <th className="py-3 px-3.5 font-semibold text-slate-300 w-[30%]">Cloth / Item</th>
+                    <th className="py-3 px-3 font-semibold text-slate-300 w-[24%]">Size Variant</th>
+                    <th className="py-3 px-3 font-semibold text-slate-300 text-right w-[14%]">Qty</th>
+                    <th className="py-3 px-3 font-semibold text-slate-300 text-right w-[14%]">Rate (₹)</th>
+                    <th className="py-3 px-3 font-semibold text-slate-300 text-right w-[14%]">Amount (₹)</th>
+                    <th className="py-3 px-2 w-[4%] text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-800/70">
                   {rows.map((row, index) => {
                     const currentItem = items.find((i) => i.id === row.itemId);
                     return (
@@ -272,7 +304,7 @@ export default function NewInvoicePage() {
                             required
                             value={row.itemId}
                             onChange={(e) => handleItemChange(index, e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                            className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                           >
                             <option value="">Select Item...</option>
                             {items.map((i) => (
@@ -288,7 +320,7 @@ export default function NewInvoicePage() {
                             disabled={!currentItem}
                             value={row.variantId}
                             onChange={(e) => handleVariantChange(index, e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 disabled:opacity-40"
+                            className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 disabled:opacity-40"
                           >
                             <option value="">Select Size...</option>
                             {currentItem?.variants.map((v) => (
@@ -298,29 +330,31 @@ export default function NewInvoicePage() {
                             ))}
                           </select>
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2.5 px-2">
                           <input
                             type="number"
-                            min="0.1"
+                            min="0.01"
                             step="any"
                             required
                             value={row.qty}
-                            onChange={(e) => handleQtyChange(index, parseFloat(e.target.value) || 0)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 text-right focus:outline-none focus:border-indigo-500"
+                            onChange={(e) => handleQtyChange(index, e.target.value)}
+                            placeholder="Qty"
+                            className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 text-right focus:outline-none focus:border-indigo-500 font-medium tabular-nums"
                           />
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2.5 px-2">
                           <input
                             type="number"
                             min="0"
                             step="any"
                             required
                             value={row.rate}
-                            onChange={(e) => handleRateChange(index, parseFloat(e.target.value) || 0)}
-                            className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 text-right focus:outline-none focus:border-indigo-500"
+                            onChange={(e) => handleRateChange(index, e.target.value)}
+                            placeholder="Rate"
+                            className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 text-right focus:outline-none focus:border-indigo-500 font-medium tabular-nums"
                           />
                         </td>
-                        <td className="py-2.5 px-3 text-right font-semibold text-slate-200">
+                        <td className="py-2.5 px-3 text-right font-semibold text-slate-100 tabular-nums">
                           ₹{row.amount.toFixed(2)}
                         </td>
                         <td className="py-2.5 px-2 text-center">
@@ -328,9 +362,10 @@ export default function NewInvoicePage() {
                             type="button"
                             onClick={() => removeRow(index)}
                             disabled={rows.length === 1}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 disabled:opacity-20 transition-colors cursor-pointer"
+                            title="Delete row"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors cursor-pointer inline-flex items-center justify-center"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>

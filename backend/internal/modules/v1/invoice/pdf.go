@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-pdf/fpdf"
 )
@@ -33,12 +34,23 @@ func GenerateInvoicePDF(inv *Invoice, company CompanySettings) ([]byte, error) {
 	pdf.Cell(100, 5, company.Address)
 	pdf.CellFormat(80, 5, fmt.Sprintf("Invoice #: %s", inv.InvoiceNo), "", 1, "R", false, 0, "")
 
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		loc = time.FixedZone("IST", 5*3600+30*60)
+	}
+
+	dateStr := inv.InvoiceDate.In(loc).Format("02-01-2006")
+	timeStr := inv.InvoiceDate.In(loc).Format("03:04 PM")
+	if (timeStr == "12:00 AM" || timeStr == "05:30 AM") && !inv.CreatedAt.IsZero() {
+		timeStr = inv.CreatedAt.In(loc).Format("03:04 PM")
+	}
+
 	gstinText := ""
 	if company.GSTIN != "" {
 		gstinText = fmt.Sprintf("GSTIN: %s", company.GSTIN)
 	}
 	pdf.Cell(100, 5, gstinText)
-	pdf.CellFormat(80, 5, fmt.Sprintf("Date: %s", inv.InvoiceDate.Format("02-01-2006")), "", 1, "R", false, 0, "")
+	pdf.CellFormat(80, 5, fmt.Sprintf("Date: %s | Time: %s", dateStr, timeStr), "", 1, "R", false, 0, "")
 
 	if inv.Status == "cancelled" {
 		pdf.SetTextColor(220, 38, 38)
@@ -57,7 +69,7 @@ func GenerateInvoicePDF(inv *Invoice, company CompanySettings) ([]byte, error) {
 	// Bill To Section
 	pdf.SetFont("Arial", "B", 10)
 	pdf.SetTextColor(30, 41, 59)
-	pdf.Cell(180, 6, "BILL TO (व्यापारी):")
+	pdf.Cell(180, 6, "BILL TO:")
 	pdf.Ln(6)
 
 	pdf.SetFont("Arial", "B", 11)
@@ -147,7 +159,7 @@ func GenerateInvoicePDF(inv *Invoice, company CompanySettings) ([]byte, error) {
 	pdf.CellFormat(180, 4, "Computer generated invoice. No signature required.", "", 1, "C", false, 0, "")
 
 	var buf bytes.Buffer
-	err := pdf.Output(&buf)
+	err = pdf.Output(&buf)
 	if err != nil {
 		return nil, err
 	}

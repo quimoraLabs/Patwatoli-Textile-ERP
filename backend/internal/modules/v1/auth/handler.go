@@ -20,6 +20,9 @@ func Register(rg *gin.RouterGroup, cfg config.Config, db *gorm.DB) {
 	h := &Handler{svc: svc, db: db}
 
 	rg.POST("/auth/login", h.Login)
+	rg.POST("/auth/register", h.Register)
+	rg.POST("/auth/forgot-password", h.ForgotPassword)
+	rg.POST("/auth/reset-password", h.ResetPassword)
 	rg.POST("/auth/refresh", h.Refresh)
 
 	// Protected auth routes
@@ -27,7 +30,9 @@ func Register(rg *gin.RouterGroup, cfg config.Config, db *gorm.DB) {
 	{
 		protected.POST("/logout", h.Logout)
 		protected.GET("/me", h.Me)
+		protected.PUT("/profile", h.UpdateProfile)
 		protected.PUT("/change-password", h.ChangePassword)
+		protected.POST("/revoke-deletion", h.RevokeDeletion)
 	}
 }
 
@@ -80,6 +85,73 @@ func (h *Handler) Me(c *gin.Context) {
 	response.OK(c, user)
 }
 
+func (h *Handler) Register(c *gin.Context) {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, apperror.BadRequest("Invalid registration payload: "+err.Error()))
+		return
+	}
+
+	res, err := h.svc.Register(req, c.ClientIP())
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Created(c, res)
+}
+
+func (h *Handler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, apperror.BadRequest("Invalid email payload"))
+		return
+	}
+
+	token, err := h.svc.ForgotPassword(req, c.ClientIP())
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message":     "Password reset token generated successfully",
+		"reset_token": token,
+	})
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, apperror.BadRequest("Invalid reset password payload: "+err.Error()))
+		return
+	}
+
+	if err := h.svc.ResetPassword(req, c.ClientIP()); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{"message": "Password has been reset successfully. You can now log in."})
+}
+
+func (h *Handler) UpdateProfile(c *gin.Context) {
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, apperror.BadRequest("Invalid profile update payload: "+err.Error()))
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	user, err := h.svc.UpdateProfile(userID, req, c.ClientIP())
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, user)
+}
+
 func (h *Handler) ChangePassword(c *gin.Context) {
 	var req ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -94,4 +166,18 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	}
 
 	response.OK(c, gin.H{"message": "Password changed successfully"})
+}
+
+func (h *Handler) RevokeDeletion(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	user, err := h.svc.RevokeDeletion(userID, c.ClientIP())
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message": "Account deletion request has been revoked successfully. Your account is fully active.",
+		"user":    user,
+	})
 }

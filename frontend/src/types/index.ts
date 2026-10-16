@@ -1,3 +1,10 @@
+export interface DeletionAlert {
+  is_standby: boolean;
+  scheduled_delete_at?: string;
+  days_remaining: number;
+  message?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -5,6 +12,9 @@ export interface User {
   phone?: string;
   role: 'super_admin' | 'admin' | 'accountant' | 'viewer';
   is_active: boolean;
+  scheduled_delete_at?: string;
+  deletion_status?: string;
+  deletion_alert?: DeletionAlert;
   last_login?: string;
 }
 

@@ -11,17 +11,21 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
-  const isLoginPage = pathname === '/login';
+  const isPublicAuthPage =
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   useEffect(() => {
     setMounted(true);
-    if (!isLoginPage) {
+    if (!isPublicAuthPage) {
       const token = authStorage.getToken();
       if (!token) {
         router.push('/login');
       }
     }
-  }, [isLoginPage, router]);
+  }, [isPublicAuthPage, router]);
 
   if (!mounted) {
     return (
@@ -31,7 +35,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isLoginPage) {
+  if (isPublicAuthPage) {
     return <main className="min-h-screen">{children}</main>;
   }
 

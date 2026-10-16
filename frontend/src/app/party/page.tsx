@@ -432,7 +432,13 @@ export default function PartyPage() {
                     required
                     value={paymentData.payment_date}
                     onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                    onClick={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch {}
+                    }}
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   />
                 </div>
               </div>

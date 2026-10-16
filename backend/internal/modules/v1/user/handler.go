@@ -27,6 +27,8 @@ func Register(rg *gin.RouterGroup, cfg config.Config, db *gorm.DB) {
 		usersGroup.GET("/:id", middleware.RBAC(db, "users", "read"), h.GetByID)
 		usersGroup.PUT("/:id", middleware.RBAC(db, "users", "update"), h.Update)
 		usersGroup.DELETE("/:id", middleware.RBAC(db, "users", "delete"), h.Delete)
+		usersGroup.POST("/:id/revoke-deletion", middleware.RBAC(db, "users", "update"), h.RevokeDeletion)
+		usersGroup.DELETE("/:id/permanent", middleware.RBAC(db, "users", "delete"), h.PermanentDelete)
 	}
 }
 
@@ -90,10 +92,42 @@ func (h *Handler) Update(c *gin.Context) {
 func (h *Handler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	actorID := middleware.GetUserID(c)
-	if err := h.svc.Delete(id, actorID, c.ClientIP()); err != nil {
+	user, err := h.svc.Delete(id, actorID, c.ClientIP())
+	if err != nil {
 		response.Error(c, err)
 		return
 	}
 
-	response.OK(c, gin.H{"message": "User deleted successfully"})
+	response.OK(c, gin.H{
+		"message": "User scheduled for deletion. Standby validity is 14 days.",
+		"user":    user,
+	})
+}
+
+func (h *Handler) RevokeDeletion(c *gin.Context) {
+	id := c.Param("id")
+	actorID := middleware.GetUserID(c)
+	user, err := h.svc.RevokeDeletion(id, actorID, c.ClientIP())
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message": "User deletion revoked successfully. Account is active.",
+		"user":    user,
+	})
+}
+
+func (h *Handler) PermanentDelete(c *gin.Context) {
+	id := c.Param("id")
+	actorID := middleware.GetUserID(c)
+	if err := h.svc.PermanentDelete(id, actorID, c.ClientIP()); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"message": "User permanently deleted.",
+	})
 }
