@@ -30,6 +30,12 @@ func New(cfg config.Config, db *gorm.DB, rdb *redis.Client) *gin.Engine {
 		})
 	})
 
+	uploadDir := cfg.UploadDir
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	r.Static("/uploads", uploadDir)
+
 	registerV1(r.Group("/api/v1"), cfg, db, rdb)
 	registerV2(r.Group("/api/v2"), cfg, db, rdb)
 

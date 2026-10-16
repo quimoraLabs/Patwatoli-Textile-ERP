@@ -309,7 +309,7 @@ export default function NewInvoicePage() {
                             <option value="">Select Item...</option>
                             {items.map((i) => (
                               <option key={i.id} value={i.id}>
-                                {i.name} ({i.unit})
+                                {i.name} {i.category ? `• ${i.category}` : ''} ({i.unit})
                               </option>
                             ))}
                           </select>
@@ -322,10 +322,10 @@ export default function NewInvoicePage() {
                             onChange={(e) => handleVariantChange(index, e.target.value)}
                             className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 disabled:opacity-40"
                           >
-                            <option value="">Select Size...</option>
+                            <option value="">Select Variant...</option>
                             {currentItem?.variants.map((v) => (
                               <option key={v.id} value={v.id}>
-                                Size {v.size} (₹{v.rate})
+                                {v.size} — ₹{v.rate}
                               </option>
                             ))}
                           </select>

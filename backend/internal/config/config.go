@@ -14,7 +14,13 @@ type Config struct {
 	JWTSecret     string
 	AccessTTLMin  int
 	RefreshTTLDay int
-	AllowedOrigin string
+	AllowedOrigin       string
+	ImageKitPublicKey   string
+	ImageKitPrivateKey  string
+	ImageKitURLEndpoint string
+	FlociEndpoint       string
+	StorageDriver       string
+	UploadDir           string
 }
 
 func Load() Config {
@@ -40,15 +46,31 @@ func Load() Config {
 		origin = get("CORS_ORIGINS", "http://localhost:3000")
 	}
 
+	ikPriv := get("IMAGEKIT_PRIVATE_KEY", "")
+	driver := get("STORAGE_DRIVER", "")
+	if driver == "" {
+		if ikPriv != "" {
+			driver = "imagekit"
+		} else {
+			driver = "local"
+		}
+	}
+
 	return Config{
-		Env:           env,
-		Port:          get("PORT", "8080"),
-		DatabaseURL:   get("DATABASE_URL", "postgres://erp_user:erp_password@localhost:5432/textile_erp?sslmode=disable"),
-		RedisURL:      get("REDIS_URL", "localhost:6379"),
-		JWTSecret:     get("JWT_SECRET", "super-secret-jwt-key-patwatoli-textile-erp-2026"),
-		AccessTTLMin:  accessTTL,
-		RefreshTTLDay: refreshTTL,
-		AllowedOrigin: origin,
+		Env:                 env,
+		Port:                get("PORT", "8080"),
+		DatabaseURL:         get("DATABASE_URL", "postgres://erp_user:erp_password@localhost:5432/textile_erp?sslmode=disable"),
+		RedisURL:            get("REDIS_URL", "localhost:6379"),
+		JWTSecret:           get("JWT_SECRET", "super-secret-jwt-key-patwatoli-textile-erp-2026"),
+		AccessTTLMin:        accessTTL,
+		RefreshTTLDay:       refreshTTL,
+		AllowedOrigin:       origin,
+		ImageKitPublicKey:   get("IMAGEKIT_PUBLIC_KEY", ""),
+		ImageKitPrivateKey:  ikPriv,
+		ImageKitURLEndpoint: get("IMAGEKIT_URL_ENDPOINT", ""),
+		FlociEndpoint:       get("FLOCI_ENDPOINT", "http://localhost:4566"),
+		StorageDriver:       driver,
+		UploadDir:           get("UPLOAD_DIR", "./uploads"),
 	}
 }
 

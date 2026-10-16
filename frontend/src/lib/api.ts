@@ -13,7 +13,18 @@ import {
   User,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1';
+const getBaseUrl = (): string => {
+  let base = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1').trim();
+  // Strip trailing slashes
+  base = base.replace(/\/+$/, '');
+  // Auto-append /api/v1 if not present
+  if (!base.endsWith('/api/v1')) {
+    base = `${base}/api/v1`;
+  }
+  return base;
+};
+
+export const API_BASE_URL = getBaseUrl();
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -193,6 +204,37 @@ export const api = {
   deleteMerchant: (id: string) =>
     request(`/merchants/${id}`, { method: 'DELETE' }).then((r) => r.data),
 
+  // Image Upload (ImageKit / Local / Floci)
+  uploadImage: async (file: File): Promise<{ url: string; file_id?: string; provider?: string }> => {
+    const token = authStorage.getToken();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = 'Failed to upload image';
+      try {
+        const json = JSON.parse(errText);
+        errMsg = json?.error?.message || json?.message || errMsg;
+      } catch {}
+      throw new Error(errMsg);
+    }
+
+    const json = await res.json();
+    return json.data;
+  },
+
   // Items & Variants CRUD
   getItems: (params?: { page?: number; limit?: number; search?: string }) => {
     const query = new URLSearchParams();
@@ -201,14 +243,14 @@ export const api = {
     if (params?.search) query.set('search', params.search);
     return request<Item[]>(`/items?${query.toString()}`);
   },
-  createItem: (body: { name: string; unit: string; variants?: { size: string; rate: number }[] }) =>
+  createItem: (body: { name: string; category?: string; unit: string; image_url?: string; description?: string; variants?: { size: string; rate: number; image_url?: string }[] }) =>
     request<Item>('/items', { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
-  updateItem: (id: string, body: { name?: string; unit?: string }) =>
+  updateItem: (id: string, body: { name?: string; category?: string; unit?: string; image_url?: string; description?: string }) =>
     request<Item>(`/items/${id}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
   deleteItem: (id: string) => request(`/items/${id}`, { method: 'DELETE' }),
-  addVariant: (itemId: string, body: { size: string; rate: number }) =>
+  addVariant: (itemId: string, body: { size: string; rate: number; image_url?: string }) =>
     request<ItemVariant>(`/items/${itemId}/variants`, { method: 'POST', body: JSON.stringify(body) }).then((r) => r.data),
-  updateVariant: (variantId: string, body: { rate: number }) =>
+  updateVariant: (variantId: string, body: { rate?: number; image_url?: string }) =>
     request<ItemVariant>(`/variants/${variantId}`, { method: 'PUT', body: JSON.stringify(body) }).then((r) => r.data),
   deleteVariant: (variantId: string) => request(`/variants/${variantId}`, { method: 'DELETE' }),
 

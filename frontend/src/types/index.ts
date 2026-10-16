@@ -37,15 +37,19 @@ export interface Merchant {
 export interface ItemVariant {
   id: string;
   item_id: string;
-  size: 'A' | 'AA' | 'AAA' | 'K1' | 'K2' | 'K3';
+  size: string;
   rate: number;
+  image_url?: string;
   created_at: string;
 }
 
 export interface Item {
   id: string;
   name: string;
+  category?: string;
   unit: 'chauka' | 'jod' | 'piece' | 'meter';
+  image_url?: string;
+  description?: string;
   variants: ItemVariant[];
   created_at: string;
 }

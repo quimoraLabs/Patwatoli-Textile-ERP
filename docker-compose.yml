@@ -21,6 +21,18 @@ services:
     volumes:
       - redisdata:/data
 
+  floci:
+    image: floci/floci:latest
+    container_name: patwatoli_floci
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+    volumes:
+      - flocidata:/tmp/floci
+
 volumes:
   pgdata:
   redisdata:
+  flocidata:

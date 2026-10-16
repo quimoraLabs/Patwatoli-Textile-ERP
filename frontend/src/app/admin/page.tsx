@@ -20,7 +20,35 @@ import {
   X,
   UserPlus,
   Power,
+  ImageIcon,
+  Upload,
+  Tag,
 } from 'lucide-react';
+
+const CATEGORY_PRESETS = [
+  'Gamcha',
+  'Andi Chadar',
+  'Chadar',
+  'Dhoti',
+  'Saree',
+  'Dupatta',
+  'Lungi',
+  'Fabric / Thaan',
+  'Other',
+];
+
+const VARIANT_PRESETS = [
+  'Chhota',
+  'Bada',
+  'Printed',
+  'Non-Printed',
+  '60s Dhaga',
+  '80s Dhaga',
+  '52x90',
+  'Medium',
+  'A',
+  'AA',
+];
 
 export default function AdminPage() {
   const [tab, setTab] = useState<'users' | 'items' | 'settings' | 'backups' | 'audit'>('users');
@@ -53,16 +81,21 @@ export default function AdminPage() {
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [newItemData, setNewItemData] = useState({
     name: '',
-    unit: 'piece',
+    category: 'Gamcha',
+    unit: 'piece' as 'piece' | 'chauka' | 'jod' | 'meter',
+    image_url: '',
+    description: '',
     variants: [
-      { size: 'A', rate: 120 },
-      { size: 'AA', rate: 140 },
+      { size: 'Chhota', rate: 120, image_url: '' },
+      { size: 'Bada', rate: 160, image_url: '' },
     ],
   });
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [addVariantItemId, setAddVariantItemId] = useState<string | null>(null);
-  const [newVariantData, setNewVariantData] = useState({ size: 'A', rate: 100 });
-  const [editingVariant, setEditingVariant] = useState<{ id: string; size: string; rate: number } | null>(null);
+  const [newVariantData, setNewVariantData] = useState({ size: 'Chhota', rate: 100, image_url: '' });
+  const [editingVariant, setEditingVariant] = useState<{ id: string; size: string; rate: number; image_url?: string } | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -207,18 +240,40 @@ export default function AdminPage() {
     }
   };
 
+  const handleUploadImageFile = async (file: File, callback: (url: string) => void) => {
+    try {
+      setUploadingImage(true);
+      const res = await api.uploadImage(file);
+      callback(res.url);
+    } catch (err: any) {
+      alert(err.message || 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Item Actions
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.createItem(newItemData);
+      await api.createItem({
+        name: newItemData.name,
+        category: newItemData.category,
+        unit: newItemData.unit,
+        image_url: newItemData.image_url,
+        description: newItemData.description,
+        variants: newItemData.variants.filter((v) => v.size.trim() !== ''),
+      });
       setNewItemOpen(false);
       setNewItemData({
         name: '',
+        category: 'Gamcha',
         unit: 'piece',
+        image_url: '',
+        description: '',
         variants: [
-          { size: 'A', rate: 120 },
-          { size: 'AA', rate: 140 },
+          { size: 'Chhota', rate: 120, image_url: '' },
+          { size: 'Bada', rate: 160, image_url: '' },
         ],
       });
       fetchItems();
@@ -231,7 +286,13 @@ export default function AdminPage() {
     e.preventDefault();
     if (!editingItem) return;
     try {
-      await api.updateItem(editingItem.id, { name: editingItem.name, unit: editingItem.unit });
+      await api.updateItem(editingItem.id, {
+        name: editingItem.name,
+        category: editingItem.category,
+        unit: editingItem.unit,
+        image_url: editingItem.image_url,
+        description: editingItem.description,
+      });
       setEditingItem(null);
       fetchItems();
     } catch (err: any) {
@@ -251,11 +312,11 @@ export default function AdminPage() {
 
   const handleAddVariant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addVariantItemId) return;
+    if (!addVariantItemId || !newVariantData.size.trim()) return;
     try {
       await api.addVariant(addVariantItemId, newVariantData);
       setAddVariantItemId(null);
-      setNewVariantData({ size: 'A', rate: 100 });
+      setNewVariantData({ size: 'Chhota', rate: 100, image_url: '' });
       fetchItems();
     } catch (err: any) {
       alert(err.message || 'Failed to add variant');
@@ -266,11 +327,14 @@ export default function AdminPage() {
     e.preventDefault();
     if (!editingVariant) return;
     try {
-      await api.updateVariant(editingVariant.id, { rate: editingVariant.rate });
+      await api.updateVariant(editingVariant.id, {
+        rate: editingVariant.rate,
+        image_url: editingVariant.image_url,
+      });
       setEditingVariant(null);
       fetchItems();
     } catch (err: any) {
-      alert(err.message || 'Failed to update variant rate');
+      alert(err.message || 'Failed to update variant');
     }
   };
 
@@ -559,13 +623,38 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {items.map((item) => (
-                <div key={item.id} className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-sm font-bold text-white">{item.name}</h3>
-                      <span className="text-[11px] text-slate-400 capitalize">Unit: {item.unit}</span>
+                <div key={item.id} className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3.5 hover:border-slate-600/60 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          onClick={() => setPreviewImageUrl(item.image_url || null)}
+                          className="w-14 h-14 rounded-xl object-cover border border-slate-700 shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700/80 flex flex-col items-center justify-center shrink-0 text-slate-500">
+                          <ImageIcon className="h-5 w-5 mb-0.5" />
+                          <span className="text-[9px] font-semibold">No Pic</span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-bold text-white">{item.name}</h3>
+                          {item.category && (
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-semibold">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-400 capitalize block mt-0.5">Unit: {item.unit}</span>
+                        {item.description && (
+                          <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => setEditingItem(item)}
                         title="Edit Item"
@@ -583,41 +672,51 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-slate-700/50 text-xs">
+                  <div className="space-y-2 pt-2.5 border-t border-slate-700/50 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-400 uppercase">Size Rates (₹):</span>
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Variants & Rates (₹):
+                      </span>
                       <button
-                        onClick={() => setAddVariantItemId(item.id)}
-                        className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
+                        onClick={() => {
+                          setAddVariantItemId(item.id);
+                          setNewVariantData({ size: 'Chhota', rate: 100, image_url: '' });
+                        }}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
                       >
-                        <Plus className="h-3 w-3" /> Add Size
+                        <Plus className="h-3 w-3" /> Add Variant
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {item.variants?.map((v) => (
-                        <div
-                          key={v.id}
-                          className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium"
-                        >
-                          <span>
-                            Size {v.size}: <strong className="text-indigo-400">₹{v.rate}</strong>
-                          </span>
-                          <button
-                            onClick={() => setEditingVariant({ id: v.id, size: v.size, rate: v.rate })}
-                            title="Edit Rate"
-                            className="text-slate-400 hover:text-indigo-300 cursor-pointer"
+                      {item.variants && item.variants.length > 0 ? (
+                        item.variants.map((v) => (
+                          <div
+                            key={v.id}
+                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 text-xs font-medium"
                           >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteVariant(v.id)}
-                            title="Delete Size Variant"
-                            className="text-slate-400 hover:text-rose-400 cursor-pointer"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
+                            <span>
+                              <span className="text-slate-300 font-semibold">{v.size}:</span>{' '}
+                              <strong className="text-indigo-400 font-bold">₹{v.rate}</strong>
+                            </span>
+                            <button
+                              onClick={() => setEditingVariant({ id: v.id, size: v.size, rate: v.rate, image_url: v.image_url })}
+                              title="Edit Rate"
+                              className="text-slate-400 hover:text-indigo-300 cursor-pointer"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteVariant(v.id)}
+                              title="Delete Variant"
+                              className="text-slate-400 hover:text-rose-400 cursor-pointer"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-500 italic">No variants added yet</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -626,9 +725,14 @@ export default function AdminPage() {
 
             {/* Create Item Modal */}
             {newItemOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                <div className="glass-panel rounded-2xl p-6 border border-slate-700 max-w-md w-full shadow-2xl">
-                  <h3 className="font-bold text-base text-white mb-4">Add Finished Goods Item</h3>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+                <div className="glass-panel rounded-2xl p-6 border border-slate-700 max-w-lg w-full shadow-2xl my-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-base text-white">Add Finished Goods Item</h3>
+                    <button onClick={() => setNewItemOpen(false)} className="text-slate-400 hover:text-white">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                   <form onSubmit={handleCreateItem} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Item Name</label>
@@ -637,36 +741,176 @@ export default function AdminPage() {
                         required
                         value={newItemData.name}
                         onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
-                        placeholder="e.g. Pure Cotton Gamcha"
+                        placeholder="e.g. Pure Cotton Andi Chadar, Bhagalpuri Gamcha"
                         className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Unit of Measurement</label>
-                      <select
-                        value={newItemData.unit}
-                        onChange={(e) => setNewItemData({ ...newItemData, unit: e.target.value as any })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="piece">Piece (पीस)</option>
-                        <option value="chauka">Chauka (चौका)</option>
-                        <option value="jod">Jod (जोड़)</option>
-                        <option value="meter">Meter (मीटर)</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Category / Type</label>
+                        <select
+                          value={newItemData.category}
+                          onChange={(e) => setNewItemData({ ...newItemData, category: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          {CATEGORY_PRESETS.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Unit of Measurement</label>
+                        <select
+                          value={newItemData.unit}
+                          onChange={(e) => setNewItemData({ ...newItemData, unit: e.target.value as any })}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="piece">Piece (पीस)</option>
+                          <option value="chauka">Chauka (चौका)</option>
+                          <option value="jod">Jod (जोड़)</option>
+                          <option value="meter">Meter (मीटर)</option>
+                        </select>
+                      </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-2">
+                    {/* Image Upload */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Item Photo / Design Pattern (ImageKit / Local)
+                      </label>
+                      <div className="flex items-center gap-3">
+                        {newItemData.image_url ? (
+                          <div className="relative group">
+                            <img
+                              src={newItemData.image_url}
+                              alt="Preview"
+                              className="w-14 h-14 rounded-xl object-cover border border-slate-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setNewItemData({ ...newItemData, image_url: '' })}
+                              className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-rose-500 text-white shadow hover:bg-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-indigo-500 text-slate-300 hover:text-white text-xs font-semibold cursor-pointer transition-colors">
+                            <Upload className="h-3.5 w-3.5 text-indigo-400" />
+                            <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingImage}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadImageFile(file, (url) => setNewItemData((p) => ({ ...p, image_url: url })));
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+                        <input
+                          type="text"
+                          value={newItemData.image_url}
+                          onChange={(e) => setNewItemData({ ...newItemData, image_url: e.target.value })}
+                          placeholder="Or paste image URL directly..."
+                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Description / Weave Spec (Optional)</label>
+                      <input
+                        type="text"
+                        value={newItemData.description}
+                        onChange={(e) => setNewItemData({ ...newItemData, description: e.target.value })}
+                        placeholder="e.g. 60s combed cotton thread, red printed border, soft finish"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Initial Variants Builder */}
+                    <div className="space-y-2 pt-2 border-t border-slate-700/60">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-300">Initial Variants (Sizes/Types & Rates)</label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewItemData({
+                              ...newItemData,
+                              variants: [...newItemData.variants, { size: '', rate: 100, image_url: '' }],
+                            })
+                          }
+                          className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="h-3 w-3" /> Add Row
+                        </button>
+                      </div>
+                      <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                        {newItemData.variants.map((v, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Size/Type (e.g. Chhota, Bada, Printed)"
+                              value={v.size}
+                              onChange={(e) => {
+                                const newVars = [...newItemData.variants];
+                                newVars[idx].size = e.target.value;
+                                setNewItemData({ ...newItemData, variants: newVars });
+                              }}
+                              className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                            />
+                            <div className="flex items-center gap-1 w-28">
+                              <span className="text-xs text-slate-400 font-semibold">₹</span>
+                              <input
+                                type="number"
+                                required
+                                min="0"
+                                step="any"
+                                value={v.rate}
+                                onChange={(e) => {
+                                  const newVars = [...newItemData.variants];
+                                  newVars[idx].rate = parseFloat(e.target.value) || 0;
+                                  setNewItemData({ ...newItemData, variants: newVars });
+                                }}
+                                className="w-full px-2 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium text-right"
+                              />
+                            </div>
+                            {newItemData.variants.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newVars = newItemData.variants.filter((_, i) => i !== idx);
+                                  setNewItemData({ ...newItemData, variants: newVars });
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-400 cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-slate-700/60">
                       <button
                         type="button"
                         onClick={() => setNewItemOpen(false)}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 transition-colors"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 transition-colors cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors"
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors cursor-pointer"
                       >
                         Save Item
                       </button>
@@ -678,9 +922,14 @@ export default function AdminPage() {
 
             {/* Edit Item Modal */}
             {editingItem && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-                <div className="glass-panel rounded-2xl p-6 border border-slate-700 max-w-md w-full shadow-2xl">
-                  <h3 className="font-bold text-base text-white mb-4">Edit Item: {editingItem.name}</h3>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+                <div className="glass-panel rounded-2xl p-6 border border-slate-700 max-w-md w-full shadow-2xl my-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-base text-white">Edit Item: {editingItem.name}</h3>
+                    <button onClick={() => setEditingItem(null)} className="text-slate-400 hover:text-white">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                   <form onSubmit={handleUpdateItem} className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Item Name</label>
@@ -692,19 +941,91 @@ export default function AdminPage() {
                         className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Unit</label>
-                      <select
-                        value={editingItem.unit}
-                        onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value as any })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="piece">Piece (पीस)</option>
-                        <option value="chauka">Chauka (चौका)</option>
-                        <option value="jod">Jod (जोड़)</option>
-                        <option value="meter">Meter (मीटर)</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                        <select
+                          value={editingItem.category || 'Gamcha'}
+                          onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          {CATEGORY_PRESETS.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Unit</label>
+                        <select
+                          value={editingItem.unit}
+                          onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value as any })}
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="piece">Piece (पीस)</option>
+                          <option value="chauka">Chauka (चौका)</option>
+                          <option value="jod">Jod (जोड़)</option>
+                          <option value="meter">Meter (मीटर)</option>
+                        </select>
+                      </div>
                     </div>
+
+                    {/* Image Edit */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Photo / Pattern</label>
+                      <div className="flex items-center gap-3">
+                        {editingItem.image_url ? (
+                          <div className="relative group">
+                            <img
+                              src={editingItem.image_url}
+                              alt="Preview"
+                              className="w-14 h-14 rounded-xl object-cover border border-slate-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setEditingItem({ ...editingItem, image_url: '' })}
+                              className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-rose-500 text-white shadow hover:bg-rose-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-indigo-500 text-slate-300 hover:text-white text-xs font-semibold cursor-pointer transition-colors">
+                            <Upload className="h-3.5 w-3.5 text-indigo-400" />
+                            <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingImage}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadImageFile(file, (url) => setEditingItem((p) => p ? { ...p, image_url: url } : null));
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+                        <input
+                          type="text"
+                          value={editingItem.image_url || ''}
+                          onChange={(e) => setEditingItem({ ...editingItem, image_url: e.target.value })}
+                          placeholder="Or paste image URL..."
+                          className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={editingItem.description || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-2">
                       <button
                         type="button"
@@ -729,22 +1050,40 @@ export default function AdminPage() {
             {addVariantItemId && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
                 <div className="glass-panel rounded-2xl p-6 border border-slate-700 max-w-sm w-full shadow-2xl">
-                  <h3 className="font-bold text-base text-white mb-4">Add Size Variant</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-base text-white">Add Variant / Size / Type</h3>
+                    <button onClick={() => setAddVariantItemId(null)} className="text-slate-400 hover:text-white">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                   <form onSubmit={handleAddVariant} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Size</label>
-                      <select
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Quick Suggestions</label>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {VARIANT_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setNewVariantData({ ...newVariantData, size: preset })}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all cursor-pointer ${
+                              newVariantData.size === preset
+                                ? 'bg-indigo-600 text-white border-indigo-500'
+                                : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Variant Name / Size / Thread</label>
+                      <input
+                        type="text"
+                        required
                         value={newVariantData.size}
                         onChange={(e) => setNewVariantData({ ...newVariantData, size: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="A">Size A</option>
-                        <option value="AA">Size AA</option>
-                        <option value="AAA">Size AAA</option>
-                        <option value="K1">Size K1</option>
-                        <option value="K2">Size K2</option>
-                        <option value="K3">Size K3</option>
-                      </select>
+                        placeholder="e.g. Chhota, Bada, Printed Red, 60s Dhaga"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Rate (₹)</label>
@@ -755,7 +1094,7 @@ export default function AdminPage() {
                         required
                         value={newVariantData.rate}
                         onChange={(e) => setNewVariantData({ ...newVariantData, rate: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium"
                       />
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
@@ -770,10 +1109,32 @@ export default function AdminPage() {
                         type="submit"
                         className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors"
                       >
-                        Add Size
+                        Add Variant
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* Image Preview Lightbox */}
+            {previewImageUrl && (
+              <div
+                onClick={() => setPreviewImageUrl(null)}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 cursor-pointer"
+              >
+                <div className="relative max-w-2xl max-h-[85vh] p-2 bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl">
+                  <button
+                    onClick={() => setPreviewImageUrl(null)}
+                    className="absolute -top-3 -right-3 p-1.5 rounded-full bg-slate-800 text-white border border-slate-600 hover:bg-rose-600 transition-colors shadow-lg"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <img
+                    src={previewImageUrl}
+                    alt="Full View"
+                    className="max-w-full max-h-[80vh] rounded-xl object-contain"
+                  />
                 </div>
               </div>
             )}

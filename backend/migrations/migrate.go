@@ -37,6 +37,11 @@ func RunAutoMigrate(db *gorm.DB) error {
 		return entries[i].Name() < entries[j].Name()
 	})
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+
 	for _, entry := range entries {
 		filename := entry.Name()
 		var count int64
@@ -51,19 +56,12 @@ func RunAutoMigrate(db *gorm.DB) error {
 		}
 
 		slog.Info("applying database migration", "file", filename)
-		tx := db.Begin()
-		if err := tx.Exec(string(content)).Error; err != nil {
-			tx.Rollback()
+		if _, err := sqlDB.Exec(string(content)); err != nil {
 			return fmt.Errorf("migration %s failed: %w", filename, err)
 		}
 
-		if err := tx.Exec("INSERT INTO ptx_schema_migrations (filename) VALUES (?)", filename).Error; err != nil {
-			tx.Rollback()
+		if err := db.Exec("INSERT INTO ptx_schema_migrations (filename) VALUES (?)", filename).Error; err != nil {
 			return fmt.Errorf("failed to record migration %s: %w", filename, err)
-		}
-
-		if err := tx.Commit().Error; err != nil {
-			return fmt.Errorf("failed to commit migration %s: %w", filename, err)
 		}
 		slog.Info("migration applied successfully", "file", filename)
 	}

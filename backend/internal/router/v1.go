@@ -17,6 +17,7 @@ import (
 	"patwatoli-erp/internal/modules/v1/payment"
 	"patwatoli-erp/internal/modules/v1/report"
 	"patwatoli-erp/internal/modules/v1/setting"
+	"patwatoli-erp/internal/modules/v1/upload"
 	"patwatoli-erp/internal/modules/v1/user"
 )
 
@@ -25,6 +26,7 @@ func registerV1(rg *gin.RouterGroup, cfg config.Config, db *gorm.DB, rdb *redis.
 	user.Register(rg, cfg, db)
 	merchant.Register(rg, cfg, db)
 	item.Register(rg, cfg, db)
+	upload.Register(rg, cfg)
 	invoice.Register(rg, cfg, db)
 	payment.Register(rg, cfg, db)
 	ledger.Register(rg, cfg, db)

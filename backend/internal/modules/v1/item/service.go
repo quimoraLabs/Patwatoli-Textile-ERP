@@ -23,10 +23,13 @@ func NewService(repo Repository, db *gorm.DB) *Service {
 
 func (s *Service) Create(req CreateItemRequest, actorID, clientIP string) (*ItemResponse, error) {
 	newItem := &Item{
-		ID:        uuid.New(),
-		Name:      req.Name,
-		Unit:      req.Unit,
-		CreatedAt: time.Now().UTC(),
+		ID:          uuid.New(),
+		Name:        req.Name,
+		Category:    req.Category,
+		Unit:        req.Unit,
+		ImageURL:    req.ImageURL,
+		Description: req.Description,
+		CreatedAt:   time.Now().UTC(),
 	}
 
 	for _, v := range req.Variants {
@@ -35,6 +38,7 @@ func (s *Service) Create(req CreateItemRequest, actorID, clientIP string) (*Item
 			ItemID:    newItem.ID,
 			Size:      v.Size,
 			Rate:      tax.Round2(v.Rate),
+			ImageURL:  v.ImageURL,
 			CreatedAt: time.Now().UTC(),
 		})
 	}
@@ -99,8 +103,17 @@ func (s *Service) Update(idStr string, req UpdateItemRequest, actorID, clientIP 
 	if req.Name != nil {
 		item.Name = *req.Name
 	}
+	if req.Category != nil {
+		item.Category = *req.Category
+	}
 	if req.Unit != nil {
 		item.Unit = *req.Unit
+	}
+	if req.ImageURL != nil {
+		item.ImageURL = *req.ImageURL
+	}
+	if req.Description != nil {
+		item.Description = *req.Description
 	}
 
 	if err := s.repo.Update(item); err != nil {
@@ -148,6 +161,7 @@ func (s *Service) AddVariant(itemIDStr string, req AddVariantRequest, actorID, c
 		ItemID:    itemID,
 		Size:      req.Size,
 		Rate:      tax.Round2(req.Rate),
+		ImageURL:  req.ImageURL,
 		CreatedAt: time.Now().UTC(),
 	}
 
@@ -160,6 +174,7 @@ func (s *Service) AddVariant(itemIDStr string, req AddVariantRequest, actorID, c
 		ItemID:    v.ItemID.String(),
 		Size:      v.Size,
 		Rate:      v.Rate,
+		ImageURL:  v.ImageURL,
 		CreatedAt: v.CreatedAt,
 	}
 
@@ -181,6 +196,9 @@ func (s *Service) UpdateVariant(variantIDStr string, req UpdateVariantRequest, a
 	}
 
 	v.Rate = tax.Round2(req.Rate)
+	if req.ImageURL != nil {
+		v.ImageURL = *req.ImageURL
+	}
 	if err := s.repo.UpdateVariant(v); err != nil {
 		return nil, apperror.Internal("Failed to update variant")
 	}
@@ -190,6 +208,7 @@ func (s *Service) UpdateVariant(variantIDStr string, req UpdateVariantRequest, a
 		ItemID:    v.ItemID.String(),
 		Size:      v.Size,
 		Rate:      v.Rate,
+		ImageURL:  v.ImageURL,
 		CreatedAt: v.CreatedAt,
 	}
 
